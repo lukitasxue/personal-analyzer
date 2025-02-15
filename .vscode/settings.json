@@ -1,0 +1,15 @@
+{
+    "folder-color.pathColors": [
+        {
+            "folderPath": "personal analyzer\\mood_predictor_backend\\",
+            "color": "foldercolorizer.color_00cc00"
+        },
+        {
+            "folderPath": "personal analyzer\\mood_predictor_frontend\\",
+            "color": "foldercolorizer.color_00cc99"
+        },
+        {
+            "folderPath": "personal analyzer\\node_modules\\"
+        }
+    ]
+}
