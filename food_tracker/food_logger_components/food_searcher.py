@@ -4,7 +4,7 @@ import spacy
 import requests
 
 nlp = spacy.load("en_core_web_sm")
-API_KEY = "9o8oUhMVRBKoL7NKjq0qUsYZYlvfsV2OlHdXwCYM"
+API_KEY = "my_api"
 csv_file = "food_log.csv"
 
 # Step 1: Ask for Meal Type
