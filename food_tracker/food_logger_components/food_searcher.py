@@ -150,3 +150,6 @@ def food_tracking():
 
 # Run the program
 food_tracking()
+
+# cd "C:\Users\hsueh\Desktop\personal analyzer\mood_predictor_frontend"      
+# npm run serve

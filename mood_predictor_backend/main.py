@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 from pydantic import BaseModel
 
 from sqlalchemy import create_engine, Column, Integer, Float
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
+
+from fastapi.responses import JSONResponse #for error handling
 
 DATABASE_URL = "sqlite:///./predictions.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -57,6 +59,9 @@ def home():
 
 @app.post("/predict")
 async def predict_mood(data: MoodInput, db: Session = Depends(get_db)): # validates data with mood input class
+    if data.sleep_hours < 0 or data.stress_level < 0 or data.calories_burned < 0:
+        raise HTTPException(status_code=400, detail="Invalid input values: values cannot be zero or negative")
+    
     try:
         input_data = [[data.sleep_hours, data.stress_level, data.calories_burned]]
         predicted_mood = model.predict(input_data)[0]  # Extract single value
@@ -68,20 +73,42 @@ async def predict_mood(data: MoodInput, db: Session = Depends(get_db)): # valida
             calories_burned=data.calories_burned,
             predicted_mood=predicted_mood
         )
-        db.add(new_prediction)
+        #add to db, and save
+        db.add(new_prediction) 
         db.commit()
-        db.refresh(new_prediction)
+        db.refresh(new_prediction) # load the new prediction
 
         return {"predicted_mood": float(predicted_mood)}
 
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+    
+
 
 @app.get("/predictions")
 async def get_predictions(db: Session = Depends(get_db)):
     predictions = db.query(Prediction).all()
     return predictions
 
+
+@app.delete("/predictions/{prediction_id}")
+async def delete_prediction(prediction_id: int, db: Session = Depends(get_db)):
+    prediction_to_delete = db.query(Prediction).filter(Prediction.id == prediction_id).first()
+    if prediction_to_delete:
+        db.delete(prediction_to_delete)
+        db.commit()
+        return {"message": "Prediction deleted successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+
+
+# catches any unexpected server errors and responds with a generic message, preventing the app from crashing.
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "An internal error occurred. Please try again later."}
+    )
 
 # cd "C:\Users\hsueh\Desktop\personal analyzer\mood_predictor_backend"
 # py -m uvicorn main:app --reload

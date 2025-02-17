@@ -8,7 +8,7 @@
     <h3 v-if="predictedMood !== null">Predicted Mood: {{ predictedMood }}</h3>
 
     <h2>Past Predictions</h2>
-    <table v-if="pastPredictions.length">
+    <table v-if="pastPredictions && pastPredictions.length > 0">
       <thead>
         <tr>
           <th>Sleep Hours</th>
@@ -18,14 +18,19 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(pred, index) in pastPredictions" :key="index">
-          <td>{{ pred.sleep_hours }}</td>
-          <td>{{ pred.stress_level }}</td>
-          <td>{{ pred.calories_burned }}</td>
-          <td>{{ pred.predicted_mood }}</td>
+        <tr v-for="prediction in filteredPredictions" :key="prediction.id">
+          <td>{{ prediction.sleep_hours }}</td>
+          <td>{{ prediction.stress_level }}</td>
+          <td>{{ prediction.calories_burned }}</td>
+          <td>{{ prediction.predicted_mood }}</td>
+          <td>
+            <button @click="deletePrediction(prediction.id)">Delete</button>
+          </td>
         </tr>
+
       </tbody>
     </table>
+    <p v-else>No predictions available.</p>
   </div>
 </template>
 
@@ -44,43 +49,70 @@ export default {
   },
   methods: 
   {
-    async fetchPastPredictions() {
+    async fetchPastPredictions() { //every time the user sends a prediction request, this is loaded with the new information, and refreshing the past predictions data.
       try {
         const response = await axios.get("http://127.0.0.1:8000/predictions");
-        this.pastPredictions = response.data;
+        this.pastPredictions = response.data || [];
       } catch (error) {
-        console.error("Error fetching past predictions:", error);
+        console.error("Error fetching past predictions,:", error);
       }
     },
 
     async predictMood() {
-        try {
-          console.log("Sending data to FastAPI:", {
-            sleep_hours: this.sleep_hours,
-            stress_level: this.stress_level,
-            calories_burned: this.calories_burned
-          });
 
-          const response = await axios.post("http://127.0.0.1:8000/predict", {
-            sleep_hours: this.sleep_hours || 0, // if no number introduced, then 0
-            stress_level: this.stress_level || 0,
-            calories_burned: this.calories_burned || 0,
-          });
+      if (this.sleep_hours < 1 || this.stress_level < 1 || this.calories_burned < 0 ||
+        this.sleep_hours == null || this.stress_level == null || this.calories_burned == null) {
+        alert("Sleep hours must be at least 1 hour, and all inputs must be positive numbers and not empty!");
+        return;
+        }
 
-          console.log("Response from FastAPI:", response.data);
-          this.predictedMood = response.data.predicted_mood;
 
-          this.fetchPastPredictions();
+      try {
+        console.log("Sending data to FastAPI:", {
+          sleep_hours: this.sleep_hours,
+          stress_level: this.stress_level,
+          calories_burned: this.calories_burned
+        });
 
-          } catch (error) {
-            console.error("Error fetching prediction:", error);
-          }
-        },
+        const response = await axios.post("http://127.0.0.1:8000/predict", {
+          sleep_hours: this.sleep_hours || 0, // if no number introduced, then 0
+          stress_level: this.stress_level || 0,
+          calories_burned: this.calories_burned || 0,
+        });
+
+        console.log("Response from FastAPI:", response.data);
+        this.predictedMood = response.data.predicted_mood;
+
+        this.fetchPastPredictions();
+
+        } catch (error) {
+          console.error("Error fetching prediction:", error);
+          alert("Failed to get prediction. Please try again later.");
+        }
       },
 
-      mounted() {
-        this.fetchPastPredictions(); // Fetch past predictions on page load
+      async deletePrediction(id) {
+        try {
+          await axios.delete(`http://127.0.0.1:8000/predictions/${id}`);
+          alert('Prediction deleted successfully');
+          this.fetchPastPredictions();  // Refresh predictions after deletion
+        } catch (error) {
+          console.error('Error deleting prediction:', error);
+          alert('Failed to delete prediction');
+        }
+      },
+    },
+
+    mounted() {
+      this.fetchPastPredictions(); // Fetch past predictions on page load
+    },
+
+    computed: {
+      filteredPredictions() {
+        return this.pastPredictions.filter(p => p && p.sleep_hours !== undefined);
       }
-    };
+    },
+
+  };
 </script>
 
