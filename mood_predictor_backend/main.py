@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 from pydantic import BaseModel
 
-from sqlalchemy import create_engine, Column, Integer, Float
+from sqlalchemy import create_engine, Column, Integer, Float, Date, String
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 from fastapi.responses import JSONResponse #for error handling
@@ -19,6 +19,7 @@ class Prediction(Base):
     __tablename__ = "predictions"
 
     id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, unique=True, nullable=False)
     sleep_hours = Column(Float, nullable=False)
     stress_level = Column(Float, nullable=False)
     calories_burned = Column(Float, nullable=False)
@@ -39,10 +40,11 @@ app = FastAPI()
 model = joblib.load("mood_predictor.pkl")
 
 class MoodInput(BaseModel): # to check if the input data sent by frontend is correct, specifically if they are float data type
+    date: str
     sleep_hours: float
     stress_level: float
     calories_burned: float
-
+    
 # Enable CORS (Cross-Origin Resource Sharing)
 app.add_middleware(  #by default browsers block request from different domanins, so the frontend (vue) cant call backend (fastapi)
     CORSMiddleware,  # CORS allow vue to talk to fast api
@@ -59,6 +61,11 @@ def home():
 
 @app.post("/predict")
 async def predict_mood(data: MoodInput, db: Session = Depends(get_db)): # validates data with mood input class
+    existing = db.query(Prediction).filter(Prediction.date == data.date).first()
+    # Check for existing prediction for the date
+    if existing:
+        raise HTTPException(status_code=400, detail="Prediction for this date already exists.")
+    
     if data.sleep_hours < 0 or data.stress_level < 0 or data.calories_burned < 0:
         raise HTTPException(status_code=400, detail="Invalid input values: values cannot be zero or negative")
     
@@ -68,6 +75,7 @@ async def predict_mood(data: MoodInput, db: Session = Depends(get_db)): # valida
 
         # save to db
         new_prediction = Prediction(
+            date=data.date,
             sleep_hours=data.sleep_hours,
             stress_level=data.stress_level,
             calories_burned=data.calories_burned,

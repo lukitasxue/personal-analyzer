@@ -1,6 +1,7 @@
 <template>
   <div>
     <h2>Mood Predictor</h2>
+    <input type="date" v-model="date"/>
     <input type="number" v-model="sleep_hours" placeholder="Hours of Sleep" />
     <input type="number" v-model="stress_level" placeholder="Stress Level (1-10)" />
     <input type="number" v-model="calories_burned" placeholder="Calories Burned" />
@@ -19,6 +20,7 @@
       </thead>
       <tbody>
         <tr v-for="prediction in filteredPredictions" :key="prediction.id">
+          <td>{{ prediction.date }}</td>
           <td>{{ prediction.sleep_hours }}</td>
           <td>{{ prediction.stress_level }}</td>
           <td>{{ prediction.calories_burned }}</td>
@@ -31,15 +33,27 @@
       </tbody>
     </table>
     <p v-else>No predictions available.</p>
+
+    <!-- <MoodPredictor />
+
+    <MoodCharts /> -->
   </div>
 </template>
 
 <script>
 import axios from "axios";
 
+// import MoodPredictor from ".components/MoodPredictor.vue";
+// import MoodCharts from "./components/MoodCharts.vue";
+
 export default {
+  // components: {
+  //   MoodPredictor,
+  //   MoodCharts
+  // },
   data() {
     return {
+      date: new Date().toISOString().split('T')[0],
       sleep_hours: null,
       stress_level: null,
       calories_burned: null,
@@ -69,12 +83,14 @@ export default {
 
       try {
         console.log("Sending data to FastAPI:", {
+          date: this.date,
           sleep_hours: this.sleep_hours,
           stress_level: this.stress_level,
           calories_burned: this.calories_burned
         });
 
         const response = await axios.post("http://127.0.0.1:8000/predict", {
+          date: this.date,
           sleep_hours: this.sleep_hours || 0, // if no number introduced, then 0
           stress_level: this.stress_level || 0,
           calories_burned: this.calories_burned || 0,
@@ -101,6 +117,7 @@ export default {
           alert('Failed to delete prediction');
         }
       },
+
     },
 
     mounted() {
