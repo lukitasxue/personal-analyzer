@@ -6,21 +6,53 @@
     <h2>Sleep hours vs. Mood Score</h2>
     <canvas ref="sleepMoodChart"></canvas>
   </div>
+  <h3>Mood Score Trend</h3>
+    <Line v-if="chartData" :data="chartData" />
 </template>
 
 <script>
-  import {chart, registrables} from "chart.js"
-  import axios from "axios";
-import { Chart } from "chart.js/dist";
+  import axios from 'axios';
+  import { Chart, registerables } from 'chart.js';
+  import { Line } from 'vue-chartjs';
+  import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+} from "chart.js";
   
   Chart.register(...registerables);
+  ChartJS.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
 
   export default {
+    components: {Line,},
+    props: {
+      moodData: Array,
+    },
     data() {
       return {
         moodData: [],
         moodChart: null,
-        sleepMoodChart: null
+        sleepMoodChart: null,
+
+        chartData: {
+          labels: [],
+          datasets: [
+            {
+              label: "Mood Score Trend",
+              data: [],
+              borderColor: "rgb(75, 192, 192)",
+              fill: false,
+            }
+          ]
+        },
+        chartOptions: {
+          responsive: true
+        }
       };
     },
     async mounted() {
@@ -87,6 +119,9 @@ import { Chart } from "chart.js/dist";
             }
           }
         });
+      },
+      updateChart(newData) {
+        this.chartData.labels = newData.map((entry) => entry.date);
       }
     }
   };

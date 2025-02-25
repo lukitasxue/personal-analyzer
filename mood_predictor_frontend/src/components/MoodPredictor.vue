@@ -34,23 +34,13 @@
     </table>
     <p v-else>No predictions available.</p>
 
-    <!-- <MoodPredictor />
-
-    <MoodCharts /> -->
   </div>
 </template>
 
 <script>
 import axios from "axios";
 
-// import MoodPredictor from ".components/MoodPredictor.vue";
-// import MoodCharts from "./components/MoodCharts.vue";
-
 export default {
-  // components: {
-  //   MoodPredictor,
-  //   MoodCharts
-  // },
   data() {
     return {
       date: new Date().toISOString().split('T')[0],
